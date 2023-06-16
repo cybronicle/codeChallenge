@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class EmployeeController {
     private static final Logger LOG = LoggerFactory.getLogger(EmployeeController.class);
 
-    private EmployeeService employeeService;
+    private final EmployeeService employeeService;
 
     @Autowired
     EmployeeController(EmployeeService employeeService){
@@ -49,16 +49,19 @@ public class EmployeeController {
 
     @GetMapping("/employee/{id}/reporting-structure")
     public ReportingStructure getReportingStructure(@PathVariable String id){
+        LOG.debug("Retrieving reporting structure for {}", id);
         return employeeService.createReportingStructure(id);
     }
 
     @PostMapping("/employee/{id}/compensation")
     public Compensation create(@PathVariable String id, @RequestBody String salary){
+        LOG.debug("Creating compensation for {}, with salary {}", id, salary);
         return employeeService.create(id, salary);
     }
 
     @GetMapping("/employee/{id}/compensation")
     public Compensation getCompensation(@PathVariable String id){
+        LOG.debug("Retrieving compensation for {}", id);
         return employeeService.readCompensation(id);
     }
 }

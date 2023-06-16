@@ -11,8 +11,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
-import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -21,8 +19,8 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     private static final Logger LOG = LoggerFactory.getLogger(EmployeeServiceImpl.class);
 
-    private EmployeeRepository employeeRepository;
-    private CompensationRepository compensationRepository;
+    private final EmployeeRepository employeeRepository;
+    private final CompensationRepository compensationRepository;
 
     @Autowired
     EmployeeServiceImpl(EmployeeRepository employeeRepository, CompensationRepository compensationRepository){
@@ -63,30 +61,27 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Override
     public ReportingStructure createReportingStructure(String id) {
         Employee employee = this.read(id);
-        return new ReportingStructure(employee, this.countNumberOfReports(employee, new AtomicInteger(0), List.of()));
+        return new ReportingStructure(employee.getEmployeeId(), this.countNumberOfReports(employee, new AtomicInteger(0)));
     }
 
     @Override
     public Compensation create(String id, String salary) {
         //  creating compensation and saving into mongodb
-        Compensation compensation = new Compensation();
+        Compensation compensation = new Compensation(employeeRepository.findByEmployeeId(id).getEmployeeId(), salary);
         // grabbing employee
-        compensation.setEmployee(employeeRepository.findByEmployeeId(id));
-        compensation.setEffectiveDate(LocalDate.now());
-        compensation.setSalary(salary);
         return compensationRepository.save(compensation);
     }
 
     @Override
     public Compensation readCompensation(String id) {
-        return compensationRepository.findCompensationByEmployeeEmployeeId(id);
+        return compensationRepository.findCompensationByEmployee(id);
     }
 
     /**
      * @param employee -
      * @return - recursively counts number of reports for a given employee based on tree traversal
      */
-    private int countNumberOfReports(Employee employee, AtomicInteger numberOfReports, List<Employee> employeeList) {
+    private int countNumberOfReports(Employee employee, AtomicInteger numberOfReports) {
         // if direct reports list exists and is not empty
         if (null != employee.getDirectReports() && !employee.getDirectReports().isEmpty()){
 //            iterrate through list of reports, incrementing and recursively calling for the depth of the next
@@ -94,7 +89,7 @@ public class EmployeeServiceImpl implements EmployeeService {
                 .forEach(directReport -> {
                     // checking for duplicate reports for examples of cross-team employees
                     numberOfReports.incrementAndGet();
-                    countNumberOfReports(this.read(directReport.getEmployeeId()), numberOfReports,employeeList);
+                    countNumberOfReports(this.read(directReport.getEmployeeId()), numberOfReports);
                 });
         }
         return numberOfReports.get();
